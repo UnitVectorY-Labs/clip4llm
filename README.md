@@ -1,2 +1,3 @@
 # clip4llm
-Command 
+
+Command line application to copy file content to clipboard for use in LLMs
