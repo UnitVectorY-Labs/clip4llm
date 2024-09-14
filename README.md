@@ -1,3 +1,5 @@
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/licenses/MIT) [![Active](https://img.shields.io/badge/Status-Active-green)](https://unitvectory-labs.github.io/uvy-labs-guide/bestpractices/status/#active)
+
 # clip4llm 🚀
 
 Why waste time fiddling with files when you could be crafting prompts for your LLM? **clip4llm** takes the hassle out of manually copying file content into ChatGPT or any other LLM. This isn’t just a clipboard helper; it’s a speed boost for your brain. You point, you copy, and you’re instantly back to the fun part—prompting.
