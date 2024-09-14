@@ -44,6 +44,8 @@ func isBinaryFile(path string) (bool, error) {
 func main() {
 	// Define the --delimiter flag with a default value of triple backticks
 	delimiter := flag.String("delimiter", "```", "Set the delimiter for file content (default: ```)")
+	maxSize := flag.Int("max-size", 32, "Maximum file size to include in KB (default: 32 KB)")
+
 	flag.Parse()
 
 	// Get the current working directory
@@ -73,6 +75,13 @@ func main() {
 		// If it's a directory, continue traversing
 		if info.IsDir() {
 			log.Printf("Entering directory: %s\n", path)
+			return nil
+		}
+
+		// Skip files larger than the specified max size
+		maxSizeBytes := int64(*maxSize) * 1024
+		if info.Size() > maxSizeBytes {
+			log.Printf("Skipping large file (%.2f KB): %s\n", float64(info.Size())/1024, path)
 			return nil
 		}
 
