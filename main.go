@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -41,6 +42,10 @@ func isBinaryFile(path string) (bool, error) {
 }
 
 func main() {
+	// Define the --delimiter flag with a default value of triple backticks
+	delimiter := flag.String("delimiter", "```", "Set the delimiter for file content (default: ```)")
+	flag.Parse()
+
 	// Get the current working directory
 	dir, err := os.Getwd()
 	if err != nil {
@@ -95,8 +100,8 @@ func main() {
 			return err
 		}
 
-		// Append the file path and content to the builder with triple backticks
-		builder.WriteString(fmt.Sprintf("File: %s\n```\n%s\n```\n\n", relPath, content))
+		// Append the file path and content to the builder with the specified delimiter
+		builder.WriteString(fmt.Sprintf("File: %s\n%s\n%s\n%s\n\n", relPath, *delimiter, content, *delimiter))
 		return nil
 	})
 
