@@ -12,6 +12,9 @@ import (
 	"github.com/atotto/clipboard"
 )
 
+// Define the max total size limit in bytes (1MB = 1,048,576 bytes)
+const maxTotalSize = 1 * 1024 * 1024 // 1MB in bytes
+
 func main() {
 	// Define existing flags
 	delimiter := flag.String("delimiter", "```", "Set the delimiter for file content (default: ```)")
@@ -86,13 +89,7 @@ func main() {
 	var excludePatterns []string
 	if *exclude != "" {
 		excludePatterns = parseCommaSeparated(*exclude)
-	} else if val, ok := config["exclude"]; ok {
-		excludePatterns = parseCommaSeparated(val)
 	}
-
-	// Convert include and exclude patterns to slices
-	// (We will iterate through them for pattern matching)
-	// No need for sets since patterns are matched using filepath.Match
 
 	if *verbose {
 		// Print out the configuration values
@@ -110,6 +107,7 @@ func main() {
 	}
 
 	var builder strings.Builder
+	totalSize := 0 // Track total size of the output
 
 	// Walk through the current folder and process files
 	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -219,8 +217,19 @@ func main() {
 			relPath = "./" + relPath
 		}
 
-		// Append the file path and content to the builder with the specified delimiter
-		builder.WriteString(fmt.Sprintf("\nFile: %s\n\n%s\n%s\n%s\n\n", relPath, *delimiter, content, *delimiter))
+		// Prepare the content to append
+		fileContent := fmt.Sprintf("\nFile: %s\n\n%s\n%s\n%s\n\n", relPath, *delimiter, content, *delimiter)
+		fileSize := len(fileContent)
+
+		// Check if the total size exceeds the 1MB limit
+		if totalSize+fileSize > maxTotalSize {
+			return fmt.Errorf("total output size exceeds 1MB limit; content not copied to the clipboard")
+		}
+
+		// Append the file path and content to the builder
+		builder.WriteString(fileContent)
+		totalSize += fileSize
+
 		return nil
 	})
 

@@ -9,6 +9,7 @@ No more juggling files or struggling with hidden formats. Whether it’s code sn
 - **Wildcard File Handling:** Why limit yourself to one file when you can have them all? Use wildcards to gather your files (e.g., `*.md`, `*.yaml`) and let **clip4llm** do the rest.
 - **Hidden Gems:** Hidden files aren’t left behind. Grab those `.env` secrets like a pro.
 - **Size Matters:** File too big? Not a problem. Set a size limit and skip the heavyweights. Default: 32KB, because nobody needs a novel-length paste job consuming your precious context window.
+- **Mind the Megabyte:** Output over 1MB? Boom! That is too big so nope, not happening.
 - **Binary Exclusion:** ChatGPT doesn’t speak binary—leave those files out automatically.
 - **Config Magic:** Drop a `.clip4llm` config in your home directory or your project folder and forget about the command-line—your preferences are locked and loaded.
 - **Verbose Mode:** Want to see what’s going on behind the curtain? Crank up the verbosity and feel like a hacker.
