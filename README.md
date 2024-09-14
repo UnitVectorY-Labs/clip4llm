@@ -18,6 +18,8 @@ No more juggling files or struggling with hidden formats. Whether it’s code sn
 
 ## 🔧 Installation
 
+### Option 1: Build from Source
+
 You’ve got Go installed, right? If not, ask ChatGPT how to instally it and let's get going...
 
 1. Clone the magic:
@@ -44,6 +46,13 @@ You’ve got Go installed, right? If not, ask ChatGPT how to instally it and let
    ```bash
    clip4llm --help
    ```
+
+### Option 2: Download the Binary
+
+1. Cruise over to [clip4llm Releases](https://github.com/UnitVectorY-Labs/clip4llm/releases) and snag the latest version for your OS—Mac, Linux, Windows, whatever team you roll with.
+2. Unzip the file (or untar it if it's a tar.gz, whatever, you know what to do).
+3. Move that binary into your PATH or let it chill in your downloads folder forever. Your call.
+4. Fire up **clip4llm** and you're golden.
 
 ## 💻 Usage
 
