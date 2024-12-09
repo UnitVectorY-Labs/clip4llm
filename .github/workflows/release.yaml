@@ -6,16 +6,19 @@ on:
     types: [created]
 
 permissions:
-    contents: write
-    packages: write
-    id-token: write
-    attestations: write
+    contents: read
 
 jobs:
   releases-matrix:
     name: Release Go Binary
     runs-on: ubuntu-latest
     timeout-minutes: 30
+
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
     
     strategy:
       matrix:
