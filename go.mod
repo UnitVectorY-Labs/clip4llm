@@ -1,4 +1,4 @@
-module github.com/unitvectory-labs/clip4llm
+module github.com/UnitVectorY-Labs/clip4llm
 
 go 1.23.5
 
