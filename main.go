@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/UnitVectorY-Labs/isplaintextfile"
 	"github.com/atotto/clipboard"
 )
 
@@ -187,14 +188,14 @@ func main() {
 		}
 
 		// Check if the file is binary
-		isBinary, err := isBinaryFile(path, *maxSize)
+		isText, err := isplaintextfile.FilePreview(path, *maxSize)
 		if err != nil {
 			if *verbose {
 				fmt.Printf("Error checking if file is binary: %s\n", path)
 			}
 			return nil
 		}
-		if isBinary {
+		if !isText {
 			if *verbose {
 				fmt.Printf("Skipping binary file: %s\n", path)
 			}
