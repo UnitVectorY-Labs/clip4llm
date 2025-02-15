@@ -4,4 +4,4 @@ go 1.24.0
 
 require github.com/atotto/clipboard v0.1.4
 
-require github.com/UnitVectorY-Labs/isplaintextfile v0.0.1
+require github.com/UnitVectorY-Labs/isplaintextfile v0.0.2
