@@ -26,7 +26,7 @@ You’ve got Go installed, right? If not, ask ChatGPT how to install it and let'
 1. Clone the magic:
 
    ```bash
-   git clone https://github.com/unitvectory-labs/clip4llm.git
+   git clone https://github.com/UnitVectorY-Labs/clip4llm.git
    cd clip4llm
    ```
 
