@@ -18,6 +18,8 @@ import (
 // Define the max total size limit in bytes (1MB = 1,048,576 bytes)
 const maxTotalSize = 1 * 1024 * 1024 // 1MB in bytes
 
+var Version = "dev" // This will be set by the build systems to the release version
+
 func main() {
 	// Define existing flags
 	delimiter := flag.String("delimiter", "```", "Set the delimiter for file content (default: ```)")
@@ -28,7 +30,14 @@ func main() {
 	include := flag.String("include", "", "Comma-separated list of patterns to include, even if hidden (e.g., .github,*.env)")
 	exclude := flag.String("exclude", "", "Comma-separated list of patterns to exclude (e.g., LICENSE,*.md)")
 
+	showVersion := flag.Bool("version", false, "Print version")
+
 	flag.Parse()
+
+	if *showVersion {
+		fmt.Println("Version:", Version)
+		return
+	}
 
 	// Load configuration from .clip4llm files
 	config := loadConfig(*verbose)
