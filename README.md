@@ -19,9 +19,32 @@ Does **clip4llm** actually interact with ChatGPT or any other LLM API directly, 
 
 ## 🔧 Installation
 
-### Option 1: Build from Source
+### Option 1: Install using Go
 
 You’ve got Go installed, right? If not, ask ChatGPT how to install it and let's get going...
+
+
+1. Install it the easy way:
+
+   ```bash
+   go install github.com/UnitVectorY-Labs/clip4llm@latest
+   ```
+
+2. Make sure those Go bins are in your path:
+
+   ```bash
+   export PATH=${PATH}:`go env GOPATH`/bin
+   ```
+
+3. Check your setup (just because):
+
+   ```bash
+   clip4llm --help
+   ```
+
+### Option 2: Build from Source
+
+You’ve got Go installed, but want to manually build everything? Good for you, let's get started...
 
 1. Clone the magic:
 
@@ -48,7 +71,7 @@ You’ve got Go installed, right? If not, ask ChatGPT how to install it and let'
    clip4llm --help
    ```
 
-### Option 2: Download the Binary
+### Option 3: Download the Binary
 
 1. Cruise over to [clip4llm Releases](https://github.com/UnitVectorY-Labs/clip4llm/releases) and snag the latest version for your OS—Mac, Linux, Windows, whatever team you roll with.
 2. Unzip the file (or untar it if it's a tar.gz, whatever, you know what to do).
