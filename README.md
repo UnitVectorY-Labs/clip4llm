@@ -33,7 +33,7 @@ You’ve got Go installed, right? If not, ask ChatGPT how to install it and let'
 2. Make sure those Go bins are in your path:
 
    ```bash
-   export PATH=${PATH}:`go env GOPATH`/bin
+   export PATH=${PATH}:$(go env GOPATH)/bin
    ```
 
 3. Check your setup (just because):
