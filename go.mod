@@ -4,4 +4,4 @@ go 1.25.3 // GOVERSION
 
 require github.com/atotto/clipboard v0.1.4
 
-require github.com/UnitVectorY-Labs/isplaintextfile v0.0.3
+require github.com/UnitVectorY-Labs/isplaintextfile v0.0.4
