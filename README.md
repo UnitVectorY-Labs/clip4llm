@@ -120,6 +120,13 @@ This instantly grabs all non-hidden, non-binary files (under 32KB) in your curre
   clip4llm --verbose
   ```
 
+
+- `--no-recursive` – Only want files right here, not buried down three directories deep? This flag keeps it simple and stays in the current directory:
+
+  ```bash
+  clip4llm --no-recursive
+  ```
+
 ### 🔥 Pro Tip Combos
 
 - **Include Hidden Directory**: Maybe you need to debug that GitHub Action, include those files easily:
@@ -157,4 +164,5 @@ delimiter=```
 max-size=32
 include=.github,*.env
 exclude=LICENSE,*.md
+no-recursive=false
 ```
