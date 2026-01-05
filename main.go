@@ -30,6 +30,8 @@ func main() {
 	include := flag.String("include", "", "Comma-separated list of patterns to include, even if hidden (e.g., .github,*.env)")
 	exclude := flag.String("exclude", "", "Comma-separated list of patterns to exclude (e.g., LICENSE,*.md)")
 
+	noRecursive := flag.Bool("no-recursive", false, "Disable recursive directory traversal (only process files in current directory)")
+
 	showVersion := flag.Bool("version", false, "Print version")
 
 	flag.Parse()
@@ -47,6 +49,7 @@ func main() {
 	maxSizeSet := false
 	includeSetFlag := false
 	excludeSetFlag := false
+	noRecursiveSet := false
 
 	flag.Visit(func(f *flag.Flag) {
 		if f.Name == "delimiter" {
@@ -60,6 +63,9 @@ func main() {
 		}
 		if f.Name == "exclude" {
 			excludeSetFlag = true
+		}
+		if f.Name == "no-recursive" {
+			noRecursiveSet = true
 		}
 	})
 
@@ -90,6 +96,12 @@ func main() {
 		}
 	}
 
+	if !noRecursiveSet {
+		if val, ok := config["no-recursive"]; ok {
+			*noRecursive = val == "true"
+		}
+	}
+
 	// Parse include and exclude patterns from flags or config
 	var includePatterns []string
 	if *include != "" {
@@ -110,6 +122,7 @@ func main() {
 		fmt.Printf("\tMax Size: %d KB\n", *maxSize)
 		fmt.Printf("\tInclude Patterns: %v\n", includePatterns)
 		fmt.Printf("\tExclude Patterns: %v\n", excludePatterns)
+		fmt.Printf("\tNo Recursive: %v\n", *noRecursive)
 	}
 
 	// Get the current working directory
@@ -183,6 +196,13 @@ func main() {
 		if info.IsDir() {
 			if *verbose {
 				fmt.Printf("Entering directory: %s\n", path)
+			}
+			// If no-recursive is set, skip subdirectories
+			if *noRecursive && path != dir {
+				if *verbose {
+					fmt.Printf("Skipping subdirectory (no-recursive enabled): %s\n", path)
+				}
+				return filepath.SkipDir
 			}
 			return nil
 		}
