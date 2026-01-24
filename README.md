@@ -15,6 +15,7 @@ Does **clip4llm** actually interact with ChatGPT or any other LLM API directly, 
 - **Mind the Megabyte:** Output over 1MB gathered? Boom! That is too big so nope, not happening.
 - **Binary Exclusion:** ChatGPT doesn’t speak binary—leave those files out automatically.
 - **Config Magic:** Drop a `.clip4llm` config in your home directory or your project folder and forget about the command-line—your preferences are locked and loaded.
+- **Scoped Configs:** Need different rules for different directories? Drop `.clip4llm` files in subdirectories for fine-grained control—like `.gitignore` but for your LLM context.
 - **Verbose Mode:** Want to see what’s going on behind the curtain? Crank up the verbosity and feel like a hacker.
 
 ## 🔧 Installation
@@ -166,3 +167,92 @@ include=.github,*.env
 exclude=LICENSE,*.md
 no-recursive=false
 ```
+
+## 📂 Scoped Configuration (Directory-Level Rules)
+
+For large repositories with different needs in different areas, **clip4llm** supports scoped configuration files. Drop a `.clip4llm` file in any directory, and it will apply to that directory and all its subdirectories.
+
+### How It Works
+
+When processing files, clip4llm builds an effective configuration by layering configs in this order:
+
+1. **Defaults** – Built-in defaults (delimiter=```, max-size=32, etc.)
+2. **Home directory** – `~/.clip4llm` (global baseline)
+3. **Project root** – `.clip4llm` in the directory where you run clip4llm
+4. **Nested directories** – Any `.clip4llm` files found while traversing subdirectories
+
+Each layer can override or extend the previous layers. CLI flags always win over any config file.
+
+### Merging Rules
+
+| Setting | Merge Behavior |
+|---------|----------------|
+| `delimiter` | Last writer wins (closest scope overrides) |
+| `max-size` | Last writer wins (closest scope overrides) |
+| `no-recursive` | Last writer wins (closest scope overrides) |
+| `include` | Additive (patterns accumulate from all scopes) |
+| `exclude` | Additive (patterns accumulate from all scopes) |
+
+### Pattern Matching
+
+Patterns in `include` and `exclude` are matched against:
+- **Base name** – Just the file or directory name (e.g., `*.md` matches any markdown file)
+- **Relative path** – Path from the invocation root (e.g., `docs/*` matches files directly in the docs folder)
+
+### Examples
+
+#### Different rules for different directories
+
+```
+project/
+├── .clip4llm          # exclude=*.md
+├── docs/
+│   └── .clip4llm      # include=README.md
+├── api/
+│   └── .clip4llm      # max-size=128
+└── frontend/
+    └── .clip4llm      # exclude=*.css
+```
+
+With this setup:
+- `*.md` files are excluded everywhere (from root config)
+- `api/` allows files up to 128KB (overrides root's 32KB default)
+- `frontend/` excludes CSS files in addition to markdown files
+- Scoped configs only affect their directory and descendants—`frontend/.clip4llm` doesn't affect `api/`
+
+#### Overriding max-size for large API specs
+
+```properties
+# In api/.clip4llm
+max-size=128
+```
+
+Files under `api/` now use a 128KB size limit, while files elsewhere use the default or root config value.
+
+#### Cumulative exclusions
+
+If root has `exclude=*.log` and `build/.clip4llm` has `exclude=*.tmp`, then files under `build/` will exclude both `*.log` and `*.tmp` files.
+
+### Verbose Mode
+
+When running with `--verbose`, clip4llm will show when scoped configs are loaded:
+
+```bash
+$ clip4llm --verbose
+Config file exists: /home/user/.clip4llm
+Config file exists: /project/.clip4llm
+Loading scoped config from: /project/api/.clip4llm
+Entering directory: /project/api
+...
+Leaving scoped config from: /project/api
+```
+
+### No-Recursive Mode
+
+When `--no-recursive` is enabled (via flag or config), subdirectories are not entered and their `.clip4llm` files are not consulted.
+
+### Performance Notes
+
+- Each directory is checked for `.clip4llm` at most once during traversal
+- Parsed configs are cached for the duration of the run
+- Uses `filepath.WalkDir` for efficient directory traversal
