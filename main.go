@@ -5,10 +5,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/UnitVectorY-Labs/isplaintextfile"
@@ -22,8 +22,8 @@ var Version = "dev" // This will be set by the build systems to the release vers
 
 func main() {
 	// Define existing flags
-	delimiter := flag.String("delimiter", "```", "Set the delimiter for file content (default: ```)")
-	maxSize := flag.Int("max-size", 32, "Maximum file size to include in KB (default: 32 KB)")
+	delimiter := flag.String("delimiter", "", "Set the delimiter for file content (default: ```)")
+	maxSize := flag.Int("max-size", 0, "Maximum file size to include in KB (default: 32 KB)")
 	verbose := flag.Bool("verbose", false, "Enable verbose logging")
 
 	// Define new flags for include and exclude with support for wildcards
@@ -41,8 +41,14 @@ func main() {
 		return
 	}
 
-	// Load configuration from .clip4llm files
-	config := loadConfig(*verbose)
+	// Get the current working directory
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create the config stack with home and root configs preloaded
+	configStack := NewConfigStack(dir, *verbose)
 
 	// Determine if flags were set by the user
 	delimiterSet := false
@@ -69,91 +75,134 @@ func main() {
 		}
 	})
 
-	// Override flag values with config values if the flag was not set by the user
-	if !delimiterSet {
-		if val, ok := config["delimiter"]; ok {
-			*delimiter = val
-		}
+	// Get effective config from the stack (without scoped configs yet)
+	effectiveConfig := configStack.GetEffectiveConfig()
+
+	// Apply CLI overrides for initial traversal settings
+	if delimiterSet {
+		effectiveConfig.Delimiter = *delimiter
+	}
+	if maxSizeSet {
+		effectiveConfig.MaxSizeKB = *maxSize
+	}
+	if noRecursiveSet {
+		effectiveConfig.NoRecursive = *noRecursive
 	}
 
-	if !maxSizeSet {
-		if val, ok := config["max-size"]; ok {
-			if parsedVal, err := strconv.Atoi(val); err == nil {
-				*maxSize = parsedVal
-			}
-		}
-	}
+	// CLI patterns for include/exclude - these will be appended to all effective configs
+	var cliIncludePatterns []string
+	var cliExcludePatterns []string
 
-	if !includeSetFlag {
-		if val, ok := config["include"]; ok {
-			*include = val
-		}
+	if includeSetFlag && *include != "" {
+		cliIncludePatterns = parseCommaSeparated(*include)
 	}
-
-	if !excludeSetFlag {
-		if val, ok := config["exclude"]; ok {
-			*exclude = val
-		}
-	}
-
-	if !noRecursiveSet {
-		if val, ok := config["no-recursive"]; ok {
-			*noRecursive = val == "true"
-		}
-	}
-
-	// Parse include and exclude patterns from flags or config
-	var includePatterns []string
-	if *include != "" {
-		includePatterns = parseCommaSeparated(*include)
-	} else if val, ok := config["include"]; ok {
-		includePatterns = parseCommaSeparated(val)
-	}
-
-	var excludePatterns []string
-	if *exclude != "" {
-		excludePatterns = parseCommaSeparated(*exclude)
+	if excludeSetFlag && *exclude != "" {
+		cliExcludePatterns = parseCommaSeparated(*exclude)
 	}
 
 	if *verbose {
 		// Print out the configuration values
-		fmt.Println("Configuration:")
-		fmt.Printf("\tDelimiter: %s\n", *delimiter)
-		fmt.Printf("\tMax Size: %d KB\n", *maxSize)
-		fmt.Printf("\tInclude Patterns: %v\n", includePatterns)
-		fmt.Printf("\tExclude Patterns: %v\n", excludePatterns)
-		fmt.Printf("\tNo Recursive: %v\n", *noRecursive)
-	}
-
-	// Get the current working directory
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Initial Configuration:")
+		fmt.Printf("\tDelimiter: %s\n", effectiveConfig.Delimiter)
+		fmt.Printf("\tMax Size: %d KB\n", effectiveConfig.MaxSizeKB)
+		fmt.Printf("\tInclude Patterns: %v\n", effectiveConfig.Include)
+		fmt.Printf("\tExclude Patterns: %v\n", effectiveConfig.Exclude)
+		fmt.Printf("\tCLI Include Patterns: %v\n", cliIncludePatterns)
+		fmt.Printf("\tCLI Exclude Patterns: %v\n", cliExcludePatterns)
+		fmt.Printf("\tNo Recursive: %v\n", effectiveConfig.NoRecursive)
 	}
 
 	var builder strings.Builder
 	totalSize := 0 // Track total size of the output
 
-	// Walk through the current folder and process files
-	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	// Track directories where we pushed a config layer and track current path for popping
+	pushedDirs := make(map[string]bool)
+	var currentPath string // Track the current directory path for proper popping
+
+	// Walk through the current folder and process files using WalkDir for better performance
+	err = filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
+		// Pop configs when we leave directories (detect when path is not under currentPath)
+		if currentPath != "" && d.IsDir() {
+			// Pop any configs from directories we've left
+			for len(pushedDirs) > 0 {
+				// Check if any pushed directory is no longer a parent of the current path
+				toRemove := []string{}
+				for pushedDir := range pushedDirs {
+					// If current path doesn't start with pushedDir, we've left that directory
+					if !strings.HasPrefix(path, pushedDir+string(filepath.Separator)) && path != pushedDir {
+						configStack.Pop(pushedDir)
+						toRemove = append(toRemove, pushedDir)
+					}
+				}
+				if len(toRemove) == 0 {
+					break
+				}
+				for _, d := range toRemove {
+					delete(pushedDirs, d)
+				}
+			}
+		}
+
 		// Get the base name of the file/directory
-		name := info.Name()
+		name := d.Name()
+
+		// Get the effective config at this point (including any scoped configs)
+		effectiveConfig := configStack.GetEffectiveConfig()
+
+		// Apply CLI overrides (CLI always wins)
+		if delimiterSet {
+			effectiveConfig.Delimiter = *delimiter
+		}
+		if maxSizeSet {
+			effectiveConfig.MaxSizeKB = *maxSize
+		}
+		if noRecursiveSet {
+			effectiveConfig.NoRecursive = *noRecursive
+		}
+
+		// Combine config patterns with CLI patterns (CLI patterns take priority)
+		includePatterns := append([]string{}, effectiveConfig.Include...)
+		excludePatterns := append([]string{}, effectiveConfig.Exclude...)
+
+		if includeSetFlag {
+			// When CLI include is set, use only CLI include patterns for final decision
+			includePatterns = cliIncludePatterns
+		}
+
+		// Always append CLI exclude patterns (exclusions are cumulative)
+		excludePatterns = append(excludePatterns, cliExcludePatterns...)
+
+		// Get relative path for pattern matching
+		relPath, _ := filepath.Rel(dir, path)
+		if relPath == "." {
+			relPath = ""
+		}
+		if relPath != "" && !strings.HasPrefix(relPath, ".") {
+			relPath = "./" + relPath
+		}
 
 		// Check if the file/directory matches any exclude patterns
-		excluded, err := matchesAnyPattern(name, excludePatterns)
-		if err != nil {
-			if *verbose {
-				fmt.Printf("Error matching exclude patterns for %s: %v\n", path, err)
-			}
-			// In case of error, do not exclude
-			excluded = false
-		}
-		if excluded {
-			if info.IsDir() {
+		excluded := matchesAnyPatternWithPath(name, relPath, excludePatterns)
+
+		// Check if explicitly included (config include can rescue from config exclude,
+		// but CLI exclude always wins)
+		explicitlyIncluded := matchesAnyPatternWithPath(name, relPath, includePatterns)
+
+		// CLI exclude patterns always win - if matched by CLI exclude, exclude it
+		cliExcluded := matchesAnyPatternWithPath(name, relPath, cliExcludePatterns)
+
+		// Final exclusion decision:
+		// - If CLI excludes it, it's excluded (CLI always wins)
+		// - If config excludes it but config also includes it, it's included (include can rescue)
+		// - If config excludes it and not explicitly included, it's excluded
+		shouldExclude := excluded && (!explicitlyIncluded || cliExcluded)
+
+		if shouldExclude {
+			if d.IsDir() {
 				if *verbose {
 					fmt.Printf("Excluding directory (matched exclude pattern): %s\n", path)
 				}
@@ -168,20 +217,13 @@ func main() {
 		// Handle hidden files and directories
 		if strings.HasPrefix(name, ".") {
 			// Check if the hidden file/directory matches any include patterns
-			included, err := matchesAnyPattern(name, includePatterns)
-			if err != nil {
-				if *verbose {
-					fmt.Printf("Error matching include patterns for %s: %v\n", path, err)
-				}
-				// In case of error, do not include
-				included = false
-			}
+			included := matchesAnyPatternWithPath(name, relPath, includePatterns)
 
 			if !included {
 				if *verbose {
 					fmt.Printf("Skipping hidden file/directory: %s\n", path)
 				}
-				if info.IsDir() {
+				if d.IsDir() {
 					return filepath.SkipDir // Skip the entire hidden directory
 				}
 				return nil // Skip the hidden file
@@ -192,23 +234,48 @@ func main() {
 			}
 		}
 
-		// If it's a directory (and not skipped), continue traversing
-		if info.IsDir() {
+		// If it's a directory (and not skipped), handle config stack and continue traversing
+		if d.IsDir() {
 			if *verbose {
 				fmt.Printf("Entering directory: %s\n", path)
 			}
+
+			// Update current path
+			currentPath = path
+
+			// Check for scoped config in this directory (not root)
+			if path != dir {
+				if configStack.PushIfExists(path) {
+					pushedDirs[path] = true
+				}
+			}
+
 			// If no-recursive is set, skip subdirectories
-			if *noRecursive && path != dir {
+			if effectiveConfig.NoRecursive && path != dir {
 				if *verbose {
 					fmt.Printf("Skipping subdirectory (no-recursive enabled): %s\n", path)
+				}
+				// Pop if we pushed for this directory
+				if pushedDirs[path] {
+					configStack.Pop(path)
+					delete(pushedDirs, path)
 				}
 				return filepath.SkipDir
 			}
 			return nil
 		}
 
+		// Get file info for size check
+		info, err := d.Info()
+		if err != nil {
+			if *verbose {
+				fmt.Printf("Error getting file info for %s: %v\n", path, err)
+			}
+			return nil
+		}
+
 		// Skip files larger than the specified max size
-		maxSizeBytes := int64(*maxSize) * 1024
+		maxSizeBytes := int64(effectiveConfig.MaxSizeKB) * 1024
 		if info.Size() > maxSizeBytes {
 			if *verbose {
 				fmt.Printf("Skipping large file (%.2f KB): %s\n", float64(info.Size())/1024, path)
@@ -217,7 +284,7 @@ func main() {
 		}
 
 		// Check if the file is binary
-		isText, err := isplaintextfile.FilePreview(path, *maxSize)
+		isText, err := isplaintextfile.FilePreview(path, effectiveConfig.MaxSizeKB)
 		if err != nil {
 			if *verbose {
 				fmt.Printf("Error checking if file is binary: %s\n", path)
@@ -241,16 +308,16 @@ func main() {
 		}
 
 		// Get the relative path of the file, ensuring it starts with "./"
-		relPath, err := filepath.Rel(dir, path)
+		relPathForOutput, err := filepath.Rel(dir, path)
 		if err != nil {
 			return err
 		}
-		if !strings.HasPrefix(relPath, ".") {
-			relPath = "./" + relPath
+		if !strings.HasPrefix(relPathForOutput, ".") {
+			relPathForOutput = "./" + relPathForOutput
 		}
 
-		// Prepare the content to append
-		fileContent := fmt.Sprintf("\nFile: %s\n\n%s\n%s\n%s\n\n", relPath, *delimiter, content, *delimiter)
+		// Prepare the content to append using effective delimiter
+		fileContent := fmt.Sprintf("\nFile: %s\n\n%s\n%s\n%s\n\n", relPathForOutput, effectiveConfig.Delimiter, content, effectiveConfig.Delimiter)
 		fileSize := len(fileContent)
 
 		// Check if the total size exceeds the 1MB limit
@@ -279,19 +346,33 @@ func main() {
 	fmt.Println("Content copied to clipboard successfully.")
 }
 
-// matchesAnyPattern checks if the given name matches any pattern in the list.
-// It returns true if a match is found.
-func matchesAnyPattern(name string, patterns []string) (bool, error) {
+// matchesAnyPatternWithPath checks if the given name or relative path matches any pattern in the list.
+// It returns true if a match is found. Errors are silently ignored (treated as no match).
+func matchesAnyPatternWithPath(name, relPath string, patterns []string) bool {
 	for _, pattern := range patterns {
+		// First try to match against basename
 		matched, err := filepath.Match(pattern, name)
-		if err != nil {
-			return false, err
+		if err == nil && matched {
+			return true
 		}
-		if matched {
-			return true, nil
+
+		// Also try to match against relative path for path-based patterns
+		if relPath != "" {
+			matched, err = filepath.Match(pattern, relPath)
+			if err == nil && matched {
+				return true
+			}
+			// Try matching without the ./ prefix
+			trimmedPath := strings.TrimPrefix(relPath, "./")
+			if trimmedPath != relPath {
+				matched, err = filepath.Match(pattern, trimmedPath)
+				if err == nil && matched {
+					return true
+				}
+			}
 		}
 	}
-	return false, nil
+	return false
 }
 
 // Helper function to parse comma-separated strings into a slice

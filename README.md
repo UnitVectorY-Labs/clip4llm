@@ -15,6 +15,7 @@ Does **clip4llm** actually interact with ChatGPT or any other LLM API directly, 
 - **Mind the Megabyte:** Output over 1MB gathered? Boom! That is too big so nope, not happening.
 - **Binary Exclusion:** ChatGPT doesn’t speak binary—leave those files out automatically.
 - **Config Magic:** Drop a `.clip4llm` config in your home directory or your project folder and forget about the command-line—your preferences are locked and loaded.
+- **Scoped Configs:** Need different rules for different directories? Drop `.clip4llm` files in subdirectories for fine-grained control—like `.gitignore` but for your LLM context.
 - **Verbose Mode:** Want to see what’s going on behind the curtain? Crank up the verbosity and feel like a hacker.
 
 ## 🔧 Installation
@@ -166,3 +167,49 @@ include=.github,*.env
 exclude=LICENSE,*.md
 no-recursive=false
 ```
+
+## 📂 Scoped Configuration (Directory-Level Rules)
+
+Need different rules in different corners of your repo? Drop a `.clip4llm` anywhere and it becomes the law for that folder and everything below it. Like `.gitignore`, but for feeding your LLM and keeping your context window from exploding.
+
+### How it works (no fluff)
+
+- `~/.clip4llm` loads first (global vibes)
+- the `.clip4llm` in the folder you run `clip4llm` from loads next (project vibes)
+- then every time `clip4llm` walks into a subfolder, if it finds a `.clip4llm`, it stacks it on top (local vibes)
+- CLI flags still dunk on all of it, because obviously
+
+Closest folder wins for single values:
+- `delimiter`
+- `max-size`
+- `no-recursive`
+
+Patterns pile up for the list stuff:
+- `include` adds more “yes”
+- `exclude` adds more “no”
+
+### Example
+
+```
+project/
+├── .clip4llm              # exclude=*.md
+├── api/
+│   └── .clip4llm          # max-size=128
+└── frontend/
+    └── .clip4llm          # exclude=*.css
+```
+
+What happens:
+- `*.md` gets yeeted everywhere
+- `api/` can slurp bigger files (128KB) without crying
+- `frontend/` also ignores CSS, because nobody wants 80,000 lines of “just vibes” styling
+
+### Patterns
+
+Your `include` / `exclude` can match either:
+- file or folder names (`*.md`, `node_modules`)
+- paths from the project root (`docs/*`, `api/specs/*.json`)
+
+### Verbose mode
+
+Run with `--verbose` and it’ll tell you when it finds and uses scoped configs so you can feel powerful and in control (even if you are not).
