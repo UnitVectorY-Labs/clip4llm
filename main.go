@@ -346,21 +346,6 @@ func main() {
 	fmt.Println("Content copied to clipboard successfully.")
 }
 
-// matchesAnyPattern checks if the given name matches any pattern in the list.
-// It returns true if a match is found.
-func matchesAnyPattern(name string, patterns []string) (bool, error) {
-	for _, pattern := range patterns {
-		matched, err := filepath.Match(pattern, name)
-		if err != nil {
-			return false, err
-		}
-		if matched {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
 // matchesAnyPatternWithPath checks if the given name or relative path matches any pattern in the list.
 // It returns true if a match is found. Errors are silently ignored (treated as no match).
 func matchesAnyPatternWithPath(name, relPath string, patterns []string) bool {
