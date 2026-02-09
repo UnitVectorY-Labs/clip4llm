@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"runtime/debug"
 	"path/filepath"
 	"strings"
 
@@ -21,6 +22,15 @@ const maxTotalSize = 1 * 1024 * 1024 // 1MB in bytes
 var Version = "dev" // This will be set by the build systems to the release version
 
 func main() {
+	// Set the build version from the build info if not set by the build system
+	if Version == "dev" || Version == "" {
+		if bi, ok := debug.ReadBuildInfo(); ok {
+			if bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+				Version = bi.Main.Version
+			}
+		}
+	}
+
 	// Define existing flags
 	delimiter := flag.String("delimiter", "", "Set the delimiter for file content (default: ```)")
 	maxSize := flag.Int("max-size", 0, "Maximum file size to include in KB (default: 32 KB)")
