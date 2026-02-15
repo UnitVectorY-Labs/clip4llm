@@ -5,6 +5,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -415,10 +416,5 @@ func slicesEqual(a, b []string) bool {
 }
 
 func containsPattern(patterns []string, pattern string) bool {
-	for _, p := range patterns {
-		if p == pattern {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(patterns, pattern)
 }
