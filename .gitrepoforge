@@ -1,0 +1,10 @@
+name: clip4llm
+default_branch: main
+config:
+  description: "Supercharge your clipboard workflow with AI-driven precision—clip, filter, and feed your LLMs the content they crave."
+  license: MIT
+  language: go
+  release: release-go
+  justfile: true
+  docs:
+    enabled: false
