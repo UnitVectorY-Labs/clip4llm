@@ -1,6 +1,6 @@
-[![GitHub release](https://img.shields.io/github/release/UnitVectorY-Labs/clip4llm.svg)](https://github.com/UnitVectorY-Labs/clip4llm/releases/latest) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Active](https://img.shields.io/badge/Status-Active-green)](https://guide.unitvectorylabs.com/bestpractices/status/#active) [![Go Report Card](https://goreportcard.com/badge/github.com/UnitVectorY-Labs/clip4llm)](https://goreportcard.com/report/github.com/UnitVectorY-Labs/clip4llm)
+[![GitHub release](https://img.shields.io/github/release/UnitVectorY-Labs/clip4llm.svg)](https://github.com/UnitVectorY-Labs/clip4llm/releases/latest) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![Active](https://img.shields.io/badge/Status-Active-green)](https://guide.unitvectorylabs.com/bestpractices/status/#active) [![Go Report Card](https://goreportcard.com/badge/github.com/UnitVectorY-Labs/clip4llm)](https://goreportcard.com/report/github.com/UnitVectorY-Labs/clip4llm) 
 
-# clip4llm 🚀
+# clip4llm
 
 Why waste time fiddling with files when you could be crafting prompts for your LLM? **clip4llm** takes the hassle out of manually copying file content into ChatGPT or any other LLM. This isn’t just a clipboard helper; it’s a speed boost for your brain. With one simple command it grabs that text to feed those hungry LLMs the tokens they need and you are back to the fun part... prompting.
 
