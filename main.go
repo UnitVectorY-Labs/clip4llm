@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"path/filepath"
 	"strings"
@@ -47,7 +48,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Println("Version:", Version)
+		fmt.Println(formatVersionOutput("clip4llm", Version))
 		return
 	}
 
@@ -396,4 +397,11 @@ func parseCommaSeparated(input string) []string {
 		}
 	}
 	return result
+}
+
+func formatVersionOutput(projectName, version string) string {
+	if version != "" && !strings.HasPrefix(version, "v") {
+		version = "v" + version
+	}
+	return fmt.Sprintf("%s version %s (%s, %s/%s)", projectName, version, runtime.Version(), runtime.GOOS, runtime.GOARCH)
 }
