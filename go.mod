@@ -1,6 +1,6 @@
 module github.com/UnitVectorY-Labs/clip4llm
 
-go 1.26.0 // GOVERSION
+go 1.26 // GOVERSION
 
 require github.com/atotto/clipboard v0.1.4
 
