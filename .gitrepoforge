@@ -10,3 +10,4 @@ config:
   release_github: true
   docs:
     enabled: false
+  osv: sarif
